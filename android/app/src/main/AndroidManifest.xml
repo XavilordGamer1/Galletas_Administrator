@@ -1,8 +1,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- =================== PERMISOS AÑADIDOS =================== -->
+    <!-- Permisos para acceder a la galería -->
+    <!-- Para Android 13 y superior -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    
+    <!-- Para Android 10 a 12 (opcional, pero recomendado para compatibilidad) -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    
+    <!-- Para Android 9 y anterior (maxSdkVersion es importante) -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <!-- ========================================================= -->
+
     <application
         android:label="galletas_app_nueva"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:requestLegacyExternalStorage="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
