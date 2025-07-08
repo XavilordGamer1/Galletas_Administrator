@@ -10,7 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 
 // --- Se cambia el import al nuevo paquete ---
-import 'package:gallery_saver/gallery_saver.dart';
+import 'package:gal/gal.dart';
 
 class BarcodeWidgetTile extends StatelessWidget {
   final String data;
@@ -18,55 +18,58 @@ class BarcodeWidgetTile extends StatelessWidget {
 
   const BarcodeWidgetTile({super.key, required this.data, required this.label});
 
-  // --- Se actualiza toda la función para usar gallery_saver ---
+  // --- FUNCIÓN DE GUARDADO CORREGIDA ---
   Future<void> _saveBarcodeToGallery(
       GlobalKey key, String filename, BuildContext context) async {
+    // 1. Solicitar permiso para acceder a la galería
     final status = await Permission.photos.request();
 
     if (status.isGranted) {
       try {
+        // 2. Capturar el widget como una imagen
         final boundary =
             key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
         if (boundary == null) return;
 
         final image = await boundary.toImage(pixelRatio: 3.0);
         final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-        final Uint8List pngBytes = byteData!.buffer.asUint8List();
+        if (byteData == null) return;
+        final Uint8List pngBytes = byteData.buffer.asUint8List();
 
-        // --- LÓGICA DE GUARDADO ACTUALIZADA ---
+        // 3. Guardar la imagen en un archivo temporal
         final Directory tempDir = await getTemporaryDirectory();
         final String filePath = '${tempDir.path}/$filename.png';
         final File file = await File(filePath).writeAsBytes(pngBytes);
 
-        final bool? success = await GallerySaver.saveImage(file.path,
-            albumName: 'CodigosDeGalletas');
+        // 4. Usar el paquete 'gal' para guardar el archivo en la galería
+        // Se corrige el nombre del parámetro a 'album' y se elimina la asignación de resultado.
+        await Gal.putImage(file.path, album: 'CodigosDeGalletas');
 
+        // 5. Borrar el archivo temporal
         await file.delete();
 
-        if (context.mounted) {
-          if (success ?? false) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("¡Guardado en la galería!"),
-                backgroundColor: Colors.green,
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Error: No se pudo guardar en la galería."),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      } catch (e) {
+        // 6. Si todo sale bien, mostrar mensaje de éxito
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Error al generar la imagen: $e")));
+            const SnackBar(
+              content: Text("¡Guardado en la galería!"),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        // 7. Si ocurre un error en cualquier paso, mostrar un mensaje de error
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Error al guardar la imagen: $e"),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       }
     } else {
+      // 8. Si el permiso es denegado, mostrar un diálogo para ir a los ajustes
       if (context.mounted) {
         showDialog(
           context: context,
