@@ -1,5 +1,4 @@
 // lib/widgets/barcode_widget_tile.dart
-
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -9,6 +8,8 @@ import 'package:barcode_widget/barcode_widget.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:gal/gal.dart';
+import 'package:flutter/foundation.dart';
+import 'package:device_info_plus/device_info_plus.dart'; // Importar el nuevo paquete
 
 class BarcodeWidgetTile extends StatelessWidget {
   final String data;
@@ -16,20 +17,32 @@ class BarcodeWidgetTile extends StatelessWidget {
 
   const BarcodeWidgetTile({super.key, required this.data, required this.label});
 
-  // --- FUNCIÓN DE GUARDADO CON LÓGICA DE PERMISOS MEJORADA ---
+  // --- FUNCIÓN DE GUARDADO CON LÓGICA DE PERMISOS MEJORADA Y ADAPTATIVA ---
   Future<void> _saveBarcodeToGallery(
       GlobalKey key, String filename, BuildContext context) async {
-    // 1. Solicitar permiso para acceder a la galería.
-    // Este código le pide al usuario permiso para acceder a las fotos.
-    // IMPORTANTE: Esto solo funciona si el permiso está declarado primero
-    // en el archivo AndroidManifest.xml. Si no está declarado, el sistema
-    // operativo denegará la solicitud automáticamente.
-    final status = await Permission.photos.request();
+    PermissionStatus status;
 
-    // 2. Evaluar la respuesta del usuario.
+    // Lógica adaptativa: Pide el permiso correcto según la versión de Android.
+    if (Platform.isAndroid) {
+      final androidInfo = await DeviceInfoPlugin().androidInfo;
+      // Para Android 13 (SDK 33) y superior, se usa Permission.photos.
+      if (androidInfo.version.sdkInt >= 33) {
+        status = await Permission.photos.request();
+      } else {
+        // Para versiones anteriores, Permission.storage es más confiable.
+        status = await Permission.storage.request();
+      }
+    } else {
+      // Para iOS, Permission.photos es el correcto.
+      status = await Permission.photos.request();
+    }
+
+    if (kDebugMode) {
+      print('[DEBUG] Estado del permiso solicitado: $status');
+    }
+
     if (status.isGranted) {
       // --- PERMISO CONCEDIDO ---
-      // El usuario aceptó, por lo que procedemos a guardar la imagen.
       try {
         final boundary =
             key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
@@ -45,7 +58,6 @@ class BarcodeWidgetTile extends StatelessWidget {
         final File file = await File(filePath).writeAsBytes(pngBytes);
 
         await Gal.putImage(file.path, album: 'CodigosDeGalletas');
-
         await file.delete();
 
         if (context.mounted) {
@@ -68,8 +80,6 @@ class BarcodeWidgetTile extends StatelessWidget {
       }
     } else if (status.isPermanentlyDenied) {
       // --- PERMISO DENEGADO PERMANENTEMENTE ---
-      // El usuario ha denegado el permiso varias veces y marcó "No volver a preguntar".
-      // La única forma de habilitarlo ahora es manualmente desde los ajustes.
       if (context.mounted) {
         showDialog(
           context: context,
@@ -93,9 +103,8 @@ class BarcodeWidgetTile extends StatelessWidget {
           ),
         );
       }
-    } else if (status.isDenied) {
+    } else {
       // --- PERMISO DENEGADO ---
-      // El usuario denegó el permiso esta vez, pero podría volver a pedirlo.
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -146,7 +155,6 @@ class BarcodeWidgetTile extends StatelessWidget {
     );
   }
 }
-
 
 
 

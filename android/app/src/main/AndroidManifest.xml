@@ -1,19 +1,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- =================== PERMISOS AÑADIDOS =================== -->
-    <!-- Permisos para acceder a la galería -->
-    <!-- Para Android 13 y superior -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
-    
-    <!-- Para Android 10 a 12 (opcional, pero recomendado para compatibilidad) -->
+    <!-- 
+      PERMISOS REQUERIDOS:
+      - INTERNET: Necesario para cualquier comunicación de red futura.
+      - CAMERA: Esencial para que la funcionalidad de escaneo de código de barras pueda usar la cámara.
+      - READ_MEDIA_IMAGES: El permiso moderno (Android 13+) para acceder a fotos.
+      - READ_EXTERNAL_STORAGE: Permiso antiguo para leer almacenamiento (necesario para compatibilidad).
+      - WRITE_EXTERNAL_STORAGE: Permiso antiguo para escribir, limitado a versiones antiguas de Android.
+    -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    
-    <!-- Para Android 9 y anterior (maxSdkVersion es importante) -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
-    <!-- ========================================================= -->
 
     <application
-        android:label="galletas_app_nueva"
+        android:label="Galletas Administrator"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true">
@@ -21,15 +23,11 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:taskAffinity=""
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
-            <!-- Specifies an Android theme to apply to this Activity as soon as
-                 the Android process has started. This theme is visible to the user
-                 while the Flutter UI initializes. After that, this theme continues
-                 to determine the Window background behind the Flutter UI. -->
+            <!-- Theme for the launch screen -->
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
@@ -39,21 +37,9 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <!-- Don't delete the meta-data below.
-             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <!-- Flutter embedding meta-data -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
-    <!-- Required to query activities that can process text, see:
-         https://developer.android.com/training/package-visibility and
-         https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
-
-         In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.PROCESS_TEXT"/>
-            <data android:mimeType="text/plain"/>
-        </intent>
-    </queries>
 </manifest>
