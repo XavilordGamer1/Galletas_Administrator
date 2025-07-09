@@ -8,6 +8,63 @@ import 'report_screen.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  /// Muestra un diálogo para solicitar el PIN de administrador.
+  /// Si el PIN es correcto, navega a la pantalla de configuración.
+  void _solicitarPinAdmin(BuildContext context) {
+    final pinController = TextEditingController();
+    const adminPin = '099659'; // <- Puedes cambiar el PIN aquí
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Acceso de Administrador'),
+        content: TextField(
+          controller: pinController,
+          decoration: const InputDecoration(
+            labelText: 'Ingrese el PIN',
+            border: OutlineInputBorder(),
+          ),
+          keyboardType: TextInputType.number,
+          obscureText: true, // Oculta los caracteres del PIN
+          maxLength: 6, // Limita la longitud del PIN
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancelar'),
+            onPressed: () => Navigator.of(ctx).pop(),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.brown,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Entrar'),
+            onPressed: () {
+              if (pinController.text == adminPin) {
+                // PIN Correcto: Cierra el diálogo y navega a la pantalla
+                Navigator.of(ctx).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const ManageCookiesScreen()),
+                );
+              } else {
+                // PIN Incorrecto: Cierra el diálogo y muestra un error
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('PIN incorrecto. Acceso denegado.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,12 +118,9 @@ class HomeScreen extends StatelessWidget {
           _HomeCard(
             icon: Icons.settings,
             label: "Configuración",
-            // Navega a la nueva pantalla para GESTIONAR y EDITAR
+            // AHORA LLAMA A LA FUNCIÓN QUE PIDE EL PIN
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ManageCookiesScreen()),
-              );
+              _solicitarPinAdmin(context);
             },
           ),
         ],

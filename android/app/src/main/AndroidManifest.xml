@@ -1,18 +1,27 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- 
-      PERMISOS REQUERIDOS:
-      - INTERNET: Necesario para cualquier comunicación de red futura.
-      - CAMERA: Esencial para que la funcionalidad de escaneo de código de barras pueda usar la cámara.
-      - READ_MEDIA_IMAGES: El permiso moderno (Android 13+) para acceder a fotos.
-      - READ_EXTERNAL_STORAGE: Permiso antiguo para leer almacenamiento (necesario para compatibilidad).
-      - WRITE_EXTERNAL_STORAGE: Permiso antiguo para escribir, limitado a versiones antiguas de Android.
+        PERMISOS REQUERIDOS:
+        - INTERNET: Necesario para cualquier comunicación de red futura.
+        - CAMERA: Esencial para que la funcionalidad de escaneo de código de barras pueda usar la cámara.
+        - READ_MEDIA_IMAGES: El permiso moderno (Android 13+) para acceder a fotos.
+        - READ_EXTERNAL_STORAGE: Permiso antiguo para leer almacenamiento (necesario para compatibilidad).
+        - WRITE_EXTERNAL_STORAGE: Permiso antiguo para escribir, limitado a versiones antiguas de Android.
+        - POST_NOTIFICATIONS: (AÑADIDO) Permiso para mostrar notificaciones en Android 13+.
+        - VIBRATE: (AÑADIDO) Permite que las notificaciones puedan vibrar.
+        - RECEIVE_BOOT_COMPLETED: (AÑADIDO) Permite que la app sepa cuándo se ha reiniciado el dispositivo para volver a programar las notificaciones.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+
+    <!-- AÑADIDOS PARA NOTIFICACIONES -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
 
     <application
         android:label="Galletas Administrator"
@@ -37,6 +46,15 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!-- AÑADIDO: Receptor para volver a programar las notificaciones después de un reinicio -->
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+            </intent-filter>
+        </receiver>
+
         <!-- Flutter embedding meta-data -->
         <meta-data
             android:name="flutterEmbedding"

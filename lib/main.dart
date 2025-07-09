@@ -4,8 +4,18 @@ import 'package:provider/provider.dart';
 import 'providers/cookie_provider.dart';
 import 'providers/ventas_provider.dart';
 import 'screens/home_screen.dart';
+import 'services/notification_service.dart'; // <-- AÑADIDO: Importa el servicio
 
-void main() {
+// CAMBIO: La función main ahora es asíncrona para poder esperar a que se completen las inicializaciones.
+void main() async {
+  // CAMBIO: Asegura que todos los bindings de Flutter estén listos antes de ejecutar código asíncrono.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // CAMBIO: Inicializa el servicio de notificaciones y solicita permisos.
+  final notificationService = NotificationService();
+  await notificationService.init();
+  await notificationService.requestPermissions();
+
   runApp(const VentasGalletasApp());
 }
 
@@ -25,15 +35,12 @@ class VentasGalletasApp extends StatelessWidget {
           primarySwatch: Colors.brown,
           visualDensity: VisualDensity.adaptivePlatformDensity,
           scaffoldBackgroundColor: Colors.grey[100],
-
-          // SOLUCIÓN FINAL: Para Flutter 3.22+ se debe usar CardThemeData.
           cardTheme: CardThemeData(
             elevation: 2,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.brown[700],
