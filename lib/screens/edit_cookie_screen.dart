@@ -115,8 +115,17 @@ class _EditCookieScreenState extends State<EditCookieScreen> {
               TextFormField(
                 controller: _nombreCtrl,
                 decoration: const InputDecoration(labelText: 'Nombre'),
-                validator: (value) =>
-                    value!.isEmpty ? 'El nombre no puede estar vacío' : null,
+                maxLength: 15, // <-- LÍNEA AÑADIDA
+                validator: (value) {
+                  if (value!.isEmpty) {
+                    return 'El nombre no puede estar vacío';
+                  }
+                  if (value.length > 15) {
+                    // Esta validación es redundante por `maxLength`, pero es buena práctica.
+                    return 'El nombre no puede tener más de 15 caracteres';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 10),
               TextFormField(

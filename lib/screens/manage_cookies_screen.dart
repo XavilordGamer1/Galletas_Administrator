@@ -51,6 +51,7 @@ class _ManageCookiesScreenState extends State<ManageCookiesScreen> {
               TextField(
                 controller: nombreCtrl,
                 decoration: const InputDecoration(labelText: "Nombre"),
+                maxLength: 15, // <-- AQUÍ ESTÁ EL CAMBIO
               ),
               TextField(
                 controller: descCtrl,
