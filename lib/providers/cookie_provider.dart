@@ -9,13 +9,9 @@ class CookieProvider with ChangeNotifier {
     return [..._cookies];
   }
 
-  /// Añade una galleta a la lista y la guarda en la base de datos.
   Future<void> addCookie(Cookie newCookie) async {
     _cookies.add(newCookie);
-    // Notifica a los widgets para que se redibujen inmediatamente.
     notifyListeners();
-
-    // Guarda el cambio en la base de datos en segundo plano.
     await DBHelper.insert('cookies', {
       'id': newCookie.id,
       'nombre': newCookie.nombre,
@@ -24,14 +20,28 @@ class CookieProvider with ChangeNotifier {
     });
   }
 
-  /// Elimina una galleta de la lista y de la base de datos.
   Future<void> removeCookie(String id) async {
     _cookies.removeWhere((cookie) => cookie.id == id);
     notifyListeners();
     await DBHelper.delete('cookies', id);
   }
 
-  /// Carga todas las galletas desde la base de datos al iniciar la app.
+  /// --- NUEVO MÉTODO PARA ACTUALIZAR ---
+  /// Actualiza una galleta en la lista y en la base de datos.
+  Future<void> updateCookie(String id, Cookie updatedCookie) async {
+    final cookieIndex = _cookies.indexWhere((cookie) => cookie.id == id);
+    if (cookieIndex >= 0) {
+      _cookies[cookieIndex] = updatedCookie;
+      notifyListeners();
+      await DBHelper.update('cookies', id, {
+        'id': updatedCookie.id,
+        'nombre': updatedCookie.nombre,
+        'descripcion': updatedCookie.descripcion,
+        'precio': updatedCookie.precio,
+      });
+    }
+  }
+
   Future<void> loadCookies() async {
     final dataList = await DBHelper.getData('cookies');
     _cookies = dataList

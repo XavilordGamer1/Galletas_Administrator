@@ -1,8 +1,7 @@
-// lib/screens/home_screen.dart
-
 import 'package:flutter/material.dart';
 import 'scan_screen.dart';
-import 'cookie_screen.dart';
+import 'cookie_screen.dart'; // La de solo lectura
+import 'manage_cookies_screen.dart'; // La nueva pantalla para editar
 import 'barcode_screen.dart';
 import 'report_screen.dart';
 
@@ -17,7 +16,6 @@ class HomeScreen extends StatelessWidget {
         centerTitle: true,
         backgroundColor: Colors.brown,
       ),
-      // --- CAMBIO: El botón de escanear ahora es un FloatingActionButton ---
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.push(
           context,
@@ -26,10 +24,8 @@ class HomeScreen extends StatelessWidget {
         label: const Text('Escanear'),
         icon: const Icon(Icons.qr_code_scanner),
         backgroundColor: Colors.brown[700],
-        // --- CAMBIO: Se establece el color del texto y del icono a blanco ---
         foregroundColor: Colors.white,
       ),
-      // --- CAMBIO: Se posiciona el botón en la esquina inferior derecha ---
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: GridView.count(
         crossAxisCount: 2,
@@ -37,10 +33,10 @@ class HomeScreen extends StatelessWidget {
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
         children: [
-          // --- CAMBIO: Se eliminó la tarjeta "Vender" ---
           _HomeCard(
             icon: Icons.cookie,
             label: "Tipos de Galleta",
+            // Navega a la pantalla de SOLO LECTURA
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const CookieScreen()),
@@ -62,16 +58,14 @@ class HomeScreen extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const ReportScreen()),
             ),
           ),
-          // --- CAMBIO: Se agregó la tarjeta "Configuración" ---
           _HomeCard(
             icon: Icons.settings,
             label: "Configuración",
+            // Navega a la nueva pantalla para GESTIONAR y EDITAR
             onTap: () {
-              // Acción para el futuro
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Pantalla de configuración próximamente."),
-                ),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ManageCookiesScreen()),
               );
             },
           ),
