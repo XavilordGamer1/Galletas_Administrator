@@ -1,12 +1,38 @@
-// lib/screens/cookie_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/cookie_provider.dart';
 import '../models/cookie.dart';
 
-class CookieScreen extends StatelessWidget {
+class CookieScreen extends StatefulWidget {
   const CookieScreen({super.key});
+
+  @override
+  State<CookieScreen> createState() => _CookieScreenState();
+}
+
+class _CookieScreenState extends State<CookieScreen> {
+  var _isInit = true;
+  var _isLoading = false;
+
+  @override
+  void didChangeDependencies() {
+    // Carga los datos solo la primera vez que se construye el widget.
+    if (_isInit) {
+      setState(() {
+        _isLoading = true;
+      });
+      // Llama al provider para cargar las galletas desde la BD.
+      Provider.of<CookieProvider>(context, listen: false)
+          .loadCookies()
+          .then((_) {
+        setState(() {
+          _isLoading = false;
+        });
+      });
+    }
+    _isInit = false;
+    super.didChangeDependencies();
+  }
 
   void _abrirFormulario(BuildContext context) {
     final nombreCtrl = TextEditingController();
@@ -32,7 +58,8 @@ class CookieScreen extends StatelessWidget {
               TextField(
                 controller: precioCtrl,
                 decoration: const InputDecoration(labelText: "Precio"),
-                keyboardType: TextInputType.number,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
               ),
             ],
           ),
@@ -52,6 +79,8 @@ class CookieScreen extends StatelessWidget {
                 descripcion: descCtrl.text,
                 precio: double.tryParse(precioCtrl.text) ?? 0.0,
               );
+              // Llama al provider para añadir la galleta.
+              // La UI se actualiza al instante y el guardado en BD es asíncrono.
               Provider.of<CookieProvider>(
                 context,
                 listen: false,
@@ -71,37 +100,44 @@ class CookieScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text("Tipos de Galleta")),
-      body: cookies.isEmpty
-          ? const Center(child: Text("Aún no has agregado galletas."))
-          : ListView.builder(
-              itemCount: cookies.length,
-              itemBuilder: (ctx, i) {
-                final cookie = cookies[i];
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 15,
-                    vertical: 5,
-                  ),
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.cookie_outlined,
-                      color: Colors.brown,
-                    ),
-                    title: Text(
-                      cookie.nombre,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      "Precio: \$${cookie.precio.toStringAsFixed(2)}",
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.red),
-                      onPressed: () => cookieProvider.removeCookie(cookie.id),
-                    ),
-                  ),
-                );
-              },
-            ),
+      body: _isLoading
+          ? const Center(
+              child:
+                  CircularProgressIndicator()) // Muestra un spinner mientras carga
+          : cookies.isEmpty
+              ? const Center(child: Text("Aún no has agregado galletas."))
+              : ListView.builder(
+                  itemCount: cookies.length,
+                  itemBuilder: (ctx, i) {
+                    final cookie = cookies[i];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 15,
+                        vertical: 5,
+                      ),
+                      child: ListTile(
+                        leading: const Icon(
+                          Icons.cookie_outlined,
+                          color: Colors.brown,
+                        ),
+                        title: Text(
+                          cookie.nombre,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          "Precio: \$${cookie.precio.toStringAsFixed(2)}",
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete_outline,
+                              color: Colors.red),
+                          onPressed: () => Provider.of<CookieProvider>(context,
+                                  listen: false)
+                              .removeCookie(cookie.id),
+                        ),
+                      ),
+                    );
+                  },
+                ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _abrirFormulario(context),
         child: const Icon(Icons.add),

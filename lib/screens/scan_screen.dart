@@ -8,7 +8,7 @@ import '../providers/cookie_provider.dart';
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
-
+  //feo
   @override
   State<ScanScreen> createState() => _ScanScreenState();
 }
