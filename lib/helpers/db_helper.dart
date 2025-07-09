@@ -2,18 +2,24 @@ import 'package:sqflite/sqflite.dart' as sql;
 import 'package:path/path.dart' as path;
 import 'package:sqflite/sqlite_api.dart';
 
-/// Clase auxiliar para gestionar la base de datos SQLite.
 class DBHelper {
   static Future<Database> database() async {
     final dbPath = await sql.getDatabasesPath();
     return sql.openDatabase(path.join(dbPath, 'galletas.db'),
         onCreate: (db, version) {
-      return db.execute(
+      // Usar un batch para ejecutar múltiples sentencias en una sola transacción.
+      final batch = db.batch();
+      // Crea la tabla de galletas.
+      batch.execute(
           'CREATE TABLE cookies(id TEXT PRIMARY KEY, nombre TEXT, descripcion TEXT, precio REAL)');
+      // CAMBIO: Crea la tabla de ventas con la nueva columna para la fecha de pago.
+      batch.execute(
+          'CREATE TABLE ventas(id TEXT PRIMARY KEY, codigoEscaneado TEXT, fecha TEXT, esFiado INTEGER, nombreDeudor TEXT, fechaPago TEXT)');
+      return batch.commit();
     }, version: 1);
   }
 
-  static Future<void> insert(String table, Map<String, Object> data) async {
+  static Future<void> insert(String table, Map<String, Object?> data) async {
     final db = await DBHelper.database();
     await db.insert(
       table,
@@ -32,10 +38,8 @@ class DBHelper {
     await db.delete(table, where: 'id = ?', whereArgs: [id]);
   }
 
-  /// --- NUEVO MÉTODO PARA ACTUALIZAR ---
-  /// Actualiza un registro en la tabla basado en su id.
   static Future<void> update(
-      String table, String id, Map<String, Object> data) async {
+      String table, String id, Map<String, Object?> data) async {
     final db = await DBHelper.database();
     await db.update(
       table,

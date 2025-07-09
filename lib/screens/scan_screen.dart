@@ -1,26 +1,43 @@
-// lib/screens/scan_screen.dart
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import '../providers/ventas_provider.dart';
 import '../providers/cookie_provider.dart';
+import '../models/venta.dart';
+import '../models/cookie.dart';
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
-  //feo
+
   @override
   State<ScanScreen> createState() => _ScanScreenState();
 }
 
 class _ScanScreenState extends State<ScanScreen> {
-  // Simplemente eliminamos el parámetro "resolution" que causaba el error.
   final MobileScannerController controller = MobileScannerController(
     formats: [BarcodeFormat.code128, BarcodeFormat.ean13],
   );
 
-  bool isProcessing = false;
-  bool isTorchOn = false;
+  bool _isProcessing = false;
+  bool _isTorchOn = false;
+
+  // --- CAMBIO: Se usa un nuevo patrón para cargar los datos ---
+  late Future<void> _loadCookiesFuture;
+  bool _isInit = true;
+
+  @override
+  void didChangeDependencies() {
+    // --- CAMBIO: La carga de datos se mueve a didChangeDependencies ---
+    // Este método se llama cuando el widget se inserta en el árbol, asegurando
+    // que los datos se carguen cada vez que se entra a la pantalla.
+    if (_isInit) {
+      _loadCookiesFuture =
+          Provider.of<CookieProvider>(context, listen: false).loadCookies();
+    }
+    _isInit = false;
+    super.didChangeDependencies();
+  }
 
   @override
   void dispose() {
@@ -29,48 +46,50 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   void _onDetect(BarcodeCapture capture) {
-    if (isProcessing) return;
+    if (_isProcessing) return;
 
     final String? codigo = capture.barcodes.first.rawValue;
     if (codigo == null) return;
 
-    final validCodes = _getValidProductCodes(context);
+    final cookieProvider = Provider.of<CookieProvider>(context, listen: false);
 
-    if (validCodes.contains(codigo)) {
+    try {
+      // Busca la galleta cuyo nombre formateado coincida con el código escaneado
+      final cookie = cookieProvider.cookies.firstWhere((c) {
+        final expectedCode =
+            "PRODUCTO-${c.nombre.toUpperCase().replaceAll(' ', '-')}";
+        return expectedCode == codigo;
+      });
+
       setState(() {
-        isProcessing = true;
+        _isProcessing = true;
       });
       controller.stop();
-      _mostrarDialogoVenta(codigo);
-    } else {
+      _mostrarDialogoVenta(cookie);
+    } catch (e) {
+      // Se ejecuta si no se encuentra ninguna galleta que coincida.
       _showInvalidCodeError();
     }
-  }
-
-  List<String> _getValidProductCodes(BuildContext context) {
-    final cookieProvider = Provider.of<CookieProvider>(context, listen: false);
-    return cookieProvider.cookies.map((cookie) {
-      return "PRODUCTO-${cookie.nombre.toUpperCase().replaceAll(' ', '-')}";
-    }).toList();
   }
 
   void _showInvalidCodeError() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("Código no reconocido."),
+        content: Text("Código de galleta no reconocido."),
         backgroundColor: Colors.red,
-        duration: Duration(seconds: 1),
+        duration: Duration(seconds: 2),
       ),
     );
+    _resumeCamera();
   }
 
-  void _mostrarDialogoVenta(String codigo) {
+  void _mostrarDialogoVenta(Cookie cookie) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Registrar Venta'),
-        content: Text('Código escaneado:\n$codigo'),
+        title: Text('Venta: ${cookie.nombre}'),
+        content: Text('Precio: \$${cookie.precio.toStringAsFixed(2)}'),
         actions: [
           TextButton(
             child: const Text('Cancelar'),
@@ -82,8 +101,14 @@ class _ScanScreenState extends State<ScanScreen> {
           ElevatedButton(
             child: const Text('De Contado'),
             onPressed: () {
+              final nuevaVenta = Venta(
+                id: DateTime.now().toIso8601String(),
+                codigoEscaneado: cookie.id,
+                fecha: DateTime.now(),
+                esFiado: false,
+              );
               Provider.of<VentasProvider>(context, listen: false)
-                  .registrarVenta(codigo);
+                  .addVenta(nuevaVenta);
               Navigator.of(ctx).pop();
               _showSuccessAndResume('Venta de contado registrada.');
             },
@@ -94,7 +119,7 @@ class _ScanScreenState extends State<ScanScreen> {
             child: const Text('Fiar'),
             onPressed: () {
               Navigator.of(ctx).pop();
-              _mostrarDialogoFiar(codigo);
+              _mostrarDialogoFiar(cookie);
             },
           ),
         ],
@@ -102,7 +127,7 @@ class _ScanScreenState extends State<ScanScreen> {
     );
   }
 
-  void _mostrarDialogoFiar(String codigo) {
+  void _mostrarDialogoFiar(Cookie cookie) {
     final deudorController = TextEditingController();
     showDialog(
       context: context,
@@ -126,12 +151,15 @@ class _ScanScreenState extends State<ScanScreen> {
             child: const Text('Guardar Deuda'),
             onPressed: () {
               if (deudorController.text.isEmpty) return;
-              Provider.of<VentasProvider>(context, listen: false)
-                  .registrarVenta(
-                codigo,
+              final nuevaVenta = Venta(
+                id: DateTime.now().toIso8601String(),
+                codigoEscaneado: cookie.id,
+                fecha: DateTime.now(),
                 esFiado: true,
-                deudor: deudorController.text,
+                nombreDeudor: deudorController.text,
               );
+              Provider.of<VentasProvider>(context, listen: false)
+                  .addVenta(nuevaVenta);
               Navigator.of(ctx).pop();
               _showSuccessAndResume(
                   'Venta fiada a ${deudorController.text} registrada.');
@@ -150,21 +178,18 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   void _resumeCamera() {
-    setState(() {
-      isProcessing = false;
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+        controller.start();
+      }
     });
-    controller.start();
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-    final scanWindow = Rect.fromCenter(
-      center: screenSize.center(Offset.zero),
-      width: screenSize.width * 0.9,
-      height: screenSize.height * 0.25,
-    );
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Escanear para Vender"),
@@ -173,26 +198,55 @@ class _ScanScreenState extends State<ScanScreen> {
             onPressed: () {
               controller.toggleTorch();
               setState(() {
-                isTorchOn = !isTorchOn;
+                _isTorchOn = !_isTorchOn;
               });
             },
-            icon: Icon(isTorchOn ? Icons.flash_off : Icons.flash_on),
+            icon: Icon(_isTorchOn ? Icons.flash_on : Icons.flash_off),
             tooltip: "Linterna",
           ),
         ],
       ),
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          MobileScanner(
-            controller: controller,
-            onDetect: _onDetect,
-            scanWindow: scanWindow,
-          ),
-          CustomPaint(
-            painter: ScannerOverlay(scanWindow: scanWindow),
-          ),
-        ],
+      body: FutureBuilder(
+        future: _loadCookiesFuture,
+        builder: (context, snapshot) {
+          // Mientras los datos están cargando, muestra un spinner.
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text("Cargando datos de galletas..."),
+                ],
+              ),
+            );
+          }
+
+          // Si hubo un error cargando, muéstralo.
+          if (snapshot.hasError) {
+            return Center(child: Text("Error al cargar: ${snapshot.error}"));
+          }
+
+          // Cuando los datos están listos, muestra el escáner.
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              MobileScanner(
+                controller: controller,
+                onDetect: _onDetect,
+              ),
+              CustomPaint(
+                painter: ScannerOverlay(
+                    scanWindow: Rect.fromCenter(
+                  center: MediaQuery.of(context).size.center(Offset.zero),
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  height: MediaQuery.of(context).size.height * 0.25,
+                )),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
